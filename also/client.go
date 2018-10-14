@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 //Version of Wrapper
@@ -40,7 +41,7 @@ type Client struct {
 //Login Struct
 type LoginStruct struct {
 	Username string `json:"username"`
-	Password string `json:"passwort"`
+	Password string `json:"password"`
 }
 
 //Error Struct
@@ -55,7 +56,7 @@ type ErrorStruct struct {
 }
 
 //Building new Client
-func NewClient(RestURL string, apiUser string, apiPassword string, apiDatabase string, apiModule []string, options *Options) (*Client, error) {
+func NewClient(RestURL string, apiUser string, apiPassword string, options *Options) (*Client, error) {
 	restURL, err := url.Parse(RestURL)
 	if err != nil {
 		return nil, err
@@ -66,7 +67,7 @@ func NewClient(RestURL string, apiUser string, apiPassword string, apiDatabase s
 	}
 
 	if options.APIPrefix == "" {
-		options.APIPrefix = "/SimpleAPI/SimpleAPIService.svc/rest/"
+		options.APIPrefix = "/SimpleAPI/SimpleAPIService.svc/rest"
 	}
 
 	if options.LoginEndpoint == "" {
@@ -101,7 +102,7 @@ func NewClient(RestURL string, apiUser string, apiPassword string, apiDatabase s
 }
 
 //Function for creating new sessiontoken
-func (c *Client) createNewsessiontoken(ctx context.Context) (sessionid string, err error) {
+func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 
 	//Check URL, else exit
 	_, err = url.ParseRequestURI(c.restURL.String())
@@ -111,7 +112,7 @@ func (c *Client) createNewsessiontoken(ctx context.Context) (sessionid string, e
 
 	//Build Login URL
 	urlstr := c.restURL.String() + c.option.LoginEndpoint
-
+	logDebug(ctx, c, fmt.Sprintf("Login on %v with user %v", urlstr, c.Username))
 	//Create Login Body
 	data := LoginStruct{c.Username, c.Password}
 
@@ -143,8 +144,17 @@ func (c *Client) createNewsessiontoken(ctx context.Context) (sessionid string, e
 
 		return "", errorFormatterPx(ctx, c, resp.StatusCode, resp.Body)
 	}
-	//If everything OK just return sessiontoken
-	return resp.Header.Get("sessiontoken"), nil
+
+	respbody := resp.Body
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(respbody)
+	tk := buf.String()
+	defer respbody.Close()
+
+	//Trim Token
+	tk = strings.Replace(tk, "\"", "", -1)
+	//If everything OK  return nil
+	return tk, nil
 
 }
 
@@ -155,33 +165,14 @@ func (c *Client) Login(ctx context.Context) error {
 
 	// If sessiontoken doesnt yet exists create a new one
 	if c.sessiontoken == nil || *c.sessiontoken == "" {
-		sessionid, err := c.createNewsessiontoken(ctx)
-		c.sessiontoken = &sessionid
+		tk, err := c.createNewToken(ctx)
+		c.sessiontoken = &tk
+
 		return err
 		// If sessiontoken already exists return stored value
 	} else {
 		return nil
 	}
-}
-
-//LOGOUT Request for REST-API
-//Accepts PxSession ID as Input or if left empty uses SessionId from active Session
-//Returns Statuscode,error
-func (c *Client) Logout(ctx context.Context) (int, error) {
-	//Just logout if we have a valid sessiontoken
-	if c.sessiontoken != nil {
-
-		//Delete Login Object from PROFFIX REST-API
-		_, _, statuscode, err := c.request(ctx, "DELETE", c.option.LoginEndpoint, url.Values{}, nil)
-
-		//Set sessiontoken to nil
-		c.sessiontoken = nil
-
-		return statuscode, err
-	} else {
-		return 0, nil
-	}
-
 }
 
 //Request Method
@@ -199,9 +190,9 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ur
 
 	//If Log enabled log URL
 	if c.sessiontoken != nil {
-		logDebug(ctx, c, fmt.Sprintf("Request-URL: %v, Method: %v, PxSession-ID: %v", urlstr, method, *c.sessiontoken))
+		logDebug(ctx, c, fmt.Sprintf("Request-URL: %v, Method: %v, Token: %v", urlstr, method, *c.sessiontoken))
 	} else {
-		logDebug(ctx, c, fmt.Sprintf("Request-URL: %v, Method: %v, PxSession-ID: none", urlstr, method))
+		logDebug(ctx, c, fmt.Sprintf("Request-URL: %v, Method: %v, Token: none", urlstr, method))
 	}
 
 	switch method {
@@ -227,7 +218,8 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ur
 	req.Header.Set("Content-Type", "application/json")
 
 	if c.sessiontoken != nil {
-		req.Header.Set("Authenticate", "CCPSessionId "+*c.sessiontoken)
+		token := "CCPSessionId " + *c.sessiontoken
+		req.Header.Set("authenticate", token)
 
 	}
 	resp, err := c.client.Do(req)
@@ -264,12 +256,6 @@ func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (i
 	//If Statuscode not 201
 	if statuscode != 201 {
 		return request, header, statuscode, errorFormatterPx(ctx, c, statuscode, request)
-	}
-
-	//Write the latest sessiontoken back to var
-	newsession := header.Get("sessiontoken")
-	if newsession != "" {
-		*c.sessiontoken = newsession
 	}
 
 	return request, header, statuscode, err
@@ -374,36 +360,11 @@ func (c *Client) Delete(ctx context.Context, endpoint string) (io.ReadCloser, ht
 	return request, header, statuscode, err
 }
 
-//INFO Request for REST-API
-//Accepts Webservice Key as Input or if left empty uses key from options parameter
-//Returns Info about API as io.ReadCloser,error
-func (c *Client) Info(ctx context.Context, pxapi string) (io.ReadCloser, error) {
-
-	param := url.Values{}
-
-	//If no Key submitted in Function use Options
-	if pxapi == "" {
-		//Set Key from Options
-		param.Set("key", c.option.Key)
-	} else {
-		param.Set("key", pxapi)
-	}
-
-	request, _, _, err := c.request(ctx, "GET", "PRO/Info", param, "")
-
-	return request, err
-}
-
 func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io.Reader) (err error) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(request)
 	errbyte := buf.Bytes()
 	errstr := buf.String()
-
-	//Do Forced Logout...
-	logoutstatus, err := c.Logout(ctx)
-
-	logDebug(ctx, c, fmt.Sprintf("Logout after Error with Status: %v", logoutstatus))
 
 	//Define Error Struct
 	parsedError := ErrorStruct{}
