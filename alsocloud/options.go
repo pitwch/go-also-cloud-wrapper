@@ -5,7 +5,6 @@ import (
 )
 
 type Options struct {
-	Key           string
 	APIPrefix     string
 	LoginEndpoint string
 	UserAgent     string
