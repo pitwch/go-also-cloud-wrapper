@@ -123,7 +123,7 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return "", err
+		return "", errorFormatterPx(ctx, c, resp.StatusCode, resp.Body)
 	}
 
 	//If Response gives errors print also Body
@@ -132,7 +132,7 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 		resp.StatusCode == http.StatusMethodNotAllowed ||
 		resp.StatusCode == http.StatusInternalServerError {
 
-		return "", errorFormatterPx(ctx, c, resp.StatusCode, resp.Body)
+		return "", err
 	}
 
 	respbody := resp.Body
@@ -241,7 +241,14 @@ func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (i
 	//If Log enabled in options log data
 	logDebug(ctx, c, fmt.Sprintf("Sent data in POST-Request: %v", data))
 
-	return request, header, statuscode, errorFormatterPx(ctx, c, statuscode, request)
+	//If error return nicely formatted error
+	if err != nil {
+		return request, header, statuscode, errorFormatterPx(ctx, c, statuscode, request)
+		//If no error return nil
+	} else {
+		return request, header, statuscode, nil
+
+	}
 }
 
 func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io.Reader) (err error) {
@@ -255,6 +262,9 @@ func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io
 	//Try to parse JSON in ErrorStruct
 	err = xml.Unmarshal(errbyte, &parsedError)
 
+	if err != nil {
+		fmt.Print(err)
+	}
 	return fmt.Errorf("Error: %v, Statuscode: %v, Message: %v", parsedError.CReason.CText.String, statuscode, parsedError.CDetail.CServiceException.CMessage.String)
 }
 
