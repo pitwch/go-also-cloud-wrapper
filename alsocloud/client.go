@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-//Version of Wrapper
+// const Version shows the version of the wrapper
 const (
 	Version = "1.0.0"
 )
@@ -29,7 +29,7 @@ var DefaultHTTPClient = &http.Client{
 	Transport: DefaultHTTPTransport,
 }
 
-//Client Struct
+// Client represents the struct for building the client
 type Client struct {
 	marketplace  *url.URL
 	username     string
@@ -39,13 +39,13 @@ type Client struct {
 	sessiontoken *string
 }
 
-//Login Struct
+// loginStruct represents the struct  for building the login request
 type loginStruct struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-//Building new Client
+// NewClient creates a new instance of client
 func NewClient(RestURL string, apiUser string, apiPassword string, options *Options) (*Client, error) {
 	restURL, err := url.Parse(RestURL)
 	if err != nil {
@@ -91,42 +91,42 @@ func NewClient(RestURL string, apiUser string, apiPassword string, options *Opti
 	}, nil
 }
 
-//Function for creating new sessiontoken
+// createNewToken creates a new session token
 func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 
-	//Check URL, else exit
+	// Check URL, else exit
 	_, err = url.ParseRequestURI(c.marketplace.String())
 	if err != nil {
 		return "", fmt.Errorf("URL in wrong format: %s", err)
 	}
 
-	//Build Login URL
+	// Build Login URL
 	urlstr := c.marketplace.String() + c.option.LoginEndpoint
 	logDebug(ctx, c, fmt.Sprintf("Login on %v with user %v", urlstr, c.username))
-	//Create Login Body
+	// Create Login Body
 	data := loginStruct{c.username, c.password}
 
-	//Encode Login Body to JSON
+	// Encode Login Body to JSON
 	body := new(bytes.Buffer)
 	encoder := json.NewEncoder(body)
 	if err := encoder.Encode(data); err != nil {
 		return "", err
 	}
 
-	//Build Login Request
+	// Build Login Request
 	req, err := http.NewRequest("POST", urlstr, body)
 	if err != nil {
 		return "", err
 	}
 
-	//Set Login Header
+	// Set Login Header
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return "", errorFormatterPx(ctx, c, resp.StatusCode, resp.Body)
 	}
 
-	//If Response gives errors print also Body
+	// If Response gives errors print also Body
 	if resp.StatusCode == http.StatusBadRequest ||
 		resp.StatusCode == http.StatusNotFound ||
 		resp.StatusCode == http.StatusMethodNotAllowed ||
@@ -148,9 +148,9 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 
 }
 
-//Function for Login
-//Helper Function for Login to ALSO Cloud REST-API
-//Login is automatically done
+// Login generates a session token
+// Helper Function for Login to ALSO Cloud REST-API
+// Login is automatically done
 func (c *Client) Login(ctx context.Context) error {
 
 	// If sessiontoken doesnt yet exists create a new one
@@ -160,14 +160,13 @@ func (c *Client) Login(ctx context.Context) error {
 
 		return err
 		// If sessiontoken already exists return stored value
-	} else {
-		return nil
 	}
+	return nil
 }
 
-//Request Method
-//Building the Request Method for Client
-//Includes Params for possible further use
+// request does basic requests (POST/PUT/PATCH/GET/DELETE)
+// Building the Request Method for Client
+// Includes Params for possible further use
 func (c *Client) request(ctx context.Context, method, endpoint string, params url.Values, data interface{}) (io.ReadCloser, http.Header, int, error) {
 
 	var urlstr string
@@ -222,9 +221,9 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ur
 
 }
 
-//POST Request for REST-API
-//Accepts Context, Endpoint and Data as Input
-//Returns io.ReadCloser,http.Header,Statuscode,error
+// Post does a POST request to API
+// Accepts Context, Endpoint and Data as Input
+// Returns io.ReadCloser,http.Header,Statuscode,error
 func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (io.ReadCloser, http.Header, int, error) {
 	err := c.Login(ctx)
 	if err != nil {
@@ -245,14 +244,13 @@ func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (i
 	if err != nil {
 		return request, header, statuscode, errorFormatterPx(ctx, c, statuscode, request)
 		//If no error return nil
-	} else {
-		return request, header, statuscode, nil
-
 	}
+	return request, header, statuscode, nil
+
 }
 
-//Nicely format XML Errors from API
-//Returns Error, Statuscode and detailed error message
+// errorFormatterPX prettifies the XML-errors from API
+// Returns Error, Statuscode and detailed error message
 func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io.Reader) (err error) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(request)
@@ -270,8 +268,8 @@ func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io
 	return fmt.Errorf("Error: %v, Statuscode: %v, Message: %v", parsedError.Reason.CText, statuscode, parsedError.Detail.ServiceException.Message.String)
 }
 
-//Function for Check if Log is enabled in Options or not
-//Returns bool
+// logDebug does check if Log is enabled in Options or not
+// Returns bool
 func logDebug(ctx context.Context, c *Client, logtext string) {
 	//If Log enabled in options
 	if c.option.Log == true {
