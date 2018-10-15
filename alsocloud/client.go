@@ -103,6 +103,7 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 	// Build Login URL
 	urlstr := c.marketplace.String() + c.option.LoginEndpoint
 	logDebug(ctx, c, fmt.Sprintf("Login on %v with user %v", urlstr, c.username))
+
 	// Create Login Body
 	data := loginStruct{c.username, c.password}
 
@@ -148,10 +149,10 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 
 }
 
-// Login generates a session token
-// Helper Function for Login to ALSO Cloud REST-API
-// Login is automatically done
-func (c *Client) Login(ctx context.Context) error {
+// Login generates a new session token.
+// Its a helper Function for Login to ALSO Cloud REST-API.
+// Usually login is automatically done in context.
+func (c *Client) login(ctx context.Context) error {
 
 	// If sessiontoken doesnt yet exists create a new one
 	if c.sessiontoken == nil || *c.sessiontoken == "" {
@@ -164,7 +165,7 @@ func (c *Client) Login(ctx context.Context) error {
 	return nil
 }
 
-// request does basic requests (POST/PUT/PATCH/GET/DELETE)
+// request does basic requests (POST/PUT/PATCH/GET/DELETE).
 // Building the Request Method for Client
 // Includes Params for possible further use
 func (c *Client) request(ctx context.Context, method, endpoint string, params url.Values, data interface{}) (io.ReadCloser, http.Header, int, error) {
@@ -221,11 +222,11 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ur
 
 }
 
-// Post does a POST request to API
-// Accepts Context, Endpoint and Data as Input
-// Returns io.ReadCloser,http.Header,Statuscode,error
+// Post does a POST request to API.
+// It Accepts Context, Endpoint and Data as Input.
+// Returns io.ReadCloser,http.Header,Statuscode,error.
 func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (io.ReadCloser, http.Header, int, error) {
-	err := c.Login(ctx)
+	err := c.login(ctx)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -247,6 +248,22 @@ func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (i
 	}
 	return request, header, statuscode, nil
 
+}
+
+// Validate validates the session and checks if session is still active.
+// If still active returns true else returns false
+func (c *Client) Validate(ctx context.Context) bool {
+	val, _, _, _ := c.Post(ctx, "PingPong", nil)
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(val)
+	valbyte := buf.String()
+
+	log.Print(valbyte)
+	if valbyte == "null" {
+		return true
+	} else {
+		return false
+	}
 }
 
 // errorFormatterPX prettifies the XML-errors from API
