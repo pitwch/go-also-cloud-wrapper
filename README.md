@@ -1,3 +1,6 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/pitwch/go-also-cloud-wrapper)](https://goreportcard.com/report/github.com/pitwch/go-also-cloud-wrapper)
+[![GoDoc](https://godoc.org/github.com/pitwch/go-also-cloud-wrapper/alsocloud?status.svg)](https://godoc.org/github.com/pitwch/go-also-cloud-wrapper/alsocloud)
+
 # ALSO Cloud Marketplace API Golang Wrapper
 
 Golang Wrapper for the ALSO Cloud Marketplace API
