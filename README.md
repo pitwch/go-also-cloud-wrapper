@@ -76,6 +76,7 @@ import (
   also "github.com/pitwch/go-also-cloud-wrapper/alsocloud"
 )
 
+//Create client
 var alsocloud, err = also.NewClient(
 	"https://marketplace.also.ch",
 	"demo@example.com",
@@ -83,6 +84,10 @@ var alsocloud, err = also.NewClient(
 	&px.Options{Log: true, Timeout: 30},
 )
 
+//Create context
+ctx := context.Background()
+
+//Query
 res, _, _, err := alsocloud.Post(ctx, "GetCompany", nil)
 
 	buf := new(bytes.Buffer)
