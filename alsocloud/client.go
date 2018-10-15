@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
@@ -42,17 +43,6 @@ type Client struct {
 type loginStruct struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
-}
-
-//Error Struct
-type ErrorStruct struct {
-	Type    string `json:"Type"`
-	Message string `json:"Message"`
-	Fields  []struct {
-		Reason  string `json:"Reason"`
-		Name    string `json:"Name"`
-		Message string `json:"Message"`
-	} `json:"Fields"`
 }
 
 //Building new Client
@@ -251,34 +241,21 @@ func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (i
 	//If Log enabled in options log data
 	logDebug(ctx, c, fmt.Sprintf("Sent data in POST-Request: %v", data))
 
-	return request, header, statuscode, err
+	return request, header, statuscode, errorFormatterPx(ctx, c, statuscode, request)
 }
 
 func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io.Reader) (err error) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(request)
 	errbyte := buf.Bytes()
-	errstr := buf.String()
 
 	//Define Error Struct
-	parsedError := ErrorStruct{}
+	parsedError := CFault{}
 
 	//Try to parse JSON in ErrorStruct
-	err = json.Unmarshal(errbyte, &parsedError)
+	err = xml.Unmarshal(errbyte, &parsedError)
 
-	//If error on parse return plain text
-	if err != nil {
-		return fmt.Errorf("ERROR: %v", errstr)
-	}
-	if len(parsedError.Fields) > 0 {
-		var errorFields []string
-		for _, field := range parsedError.Fields {
-			errorFields = append(errorFields, field.Name)
-		}
-		return fmt.Errorf("Status: %v \n Type %s: %s\n Fields: %v", statuscode, parsedError.Type, parsedError.Message, errorFields)
-
-	}
-	return fmt.Errorf("Status: Statuscode %v\n Type %s: %s", statuscode, parsedError.Type, parsedError.Message)
+	return fmt.Errorf("Error: %v, Statuscode: %v, Message: %v", parsedError.CReason.CText.String, statuscode, parsedError.CDetail.CServiceException.CMessage.String)
 }
 
 func logDebug(ctx context.Context, c *Client, logtext string) {
