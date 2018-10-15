@@ -132,7 +132,7 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 		resp.StatusCode == http.StatusMethodNotAllowed ||
 		resp.StatusCode == http.StatusInternalServerError {
 
-		return "", err
+		return "", errorFormatterPx(ctx, c, resp.StatusCode, resp.Body)
 	}
 
 	respbody := resp.Body
@@ -149,7 +149,7 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 }
 
 //Function for Login
-//Helper Function for Login to PROFFIX REST-API
+//Helper Function for Login to ALSO Cloud REST-API
 //Login is automatically done
 func (c *Client) Login(ctx context.Context) error {
 
@@ -167,6 +167,7 @@ func (c *Client) Login(ctx context.Context) error {
 
 //Request Method
 //Building the Request Method for Client
+//Includes Params for possible further use
 func (c *Client) request(ctx context.Context, method, endpoint string, params url.Values, data interface{}) (io.ReadCloser, http.Header, int, error) {
 
 	var urlstr string
@@ -214,7 +215,6 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ur
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		log.Print(err)
 		return nil, nil, resp.StatusCode, err
 	}
 
@@ -251,23 +251,27 @@ func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (i
 	}
 }
 
+//Nicely format XML Errors from API
+//Returns Error, Statuscode and detailed error message
 func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io.Reader) (err error) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(request)
 	errbyte := buf.Bytes()
 
 	//Define Error Struct
-	parsedError := CFault{}
+	parsedError := cloudfault{}
 
-	//Try to parse JSON in ErrorStruct
+	//Try to parse JSON in XML ErrorStruct
 	err = xml.Unmarshal(errbyte, &parsedError)
 
 	if err != nil {
 		fmt.Print(err)
 	}
-	return fmt.Errorf("Error: %v, Statuscode: %v, Message: %v", parsedError.CReason.CText.String, statuscode, parsedError.CDetail.CServiceException.CMessage.String)
+	return fmt.Errorf("Error: %v, Statuscode: %v, Message: %v", parsedError.Reason.CText, statuscode, parsedError.Detail.ServiceException.Message.String)
 }
 
+//Function for Check if Log is enabled in Options or not
+//Returns bool
 func logDebug(ctx context.Context, c *Client, logtext string) {
 	//If Log enabled in options
 	if c.option.Log == true {
