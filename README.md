@@ -3,7 +3,7 @@
 Golang Wrapper for the ALSO Cloud Marketplace API
 
 
-![alt text](https://raw.githubusercontent.com/pitwch/go-also-cloud-wrapper/master/assets/img/gopher-also.png  | height=150 "ALSO Cloud Marketplace API Golang Wrapper")
+![alt text](https://raw.githubusercontent.com/pitwch/go-also-cloud-wrapper/master/assets/img/gopher-also.png height=150 "ALSO Cloud Marketplace API Golang Wrapper")
 
 Swagger Specs are here:
 https://app.swaggerhub.com/apis/Marketplace_SimpleAPI/Mareketplace_SimpleAPI/1.0.0
