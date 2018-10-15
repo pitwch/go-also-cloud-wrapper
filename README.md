@@ -22,7 +22,7 @@ $ go get github.com/pitwch/go-also-cloud-wrapper/alsocloud
 | apiPassword   | 1234                        | `string`        | Password for Cloud Marketplace        |
 | options       | &also.Options{Timeout: 30}  | `*also.Options` | Options (see Chapter `Options`)       |
 
-Examples:
+Example:
 
 ```golang
 import (
@@ -62,3 +62,32 @@ Options are **optional**:
 | endpoint   | `string`      | Endpoint ALSO Cloud Marketplace; f.ex. GetCompany, GetUser... |
 | data       | `interface{}` | Date (automatic conversion to JSON)                           |
 | parameters | `url.Values`  | Parameters                                                    |
+
+
+#### Full Example
+
+**Get Company**
+
+```golang
+import (
+  also "github.com/pitwch/go-also-cloud-wrapper/alsocloud"
+)
+
+var alsocloud, err = also.NewClient(
+	"https://marketplace.also.ch",
+	"demo@example.com",
+	"1234",
+	&px.Options{Log: true, Timeout: 30},
+)
+
+res, _, _, err := alsocloud.Post(ctx, "GetCompany", nil)
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(res)
+	resp := buf.String()
+	fmt.Printf(resp, err)
+	defer res.Close()
+	
+	//returns {"ParentAccountId": 1234,"AccountId": 1234,"AccountState": "Active","CompanyName": "Demo"...
+
+```
