@@ -13,3 +13,52 @@ $ go get github.com/pitwch/go-also-cloud-wrapper/alsocloud
 
 
 #### Configuration
+
+
+| Configuration | Examples                    | Type            | Note                                  |
+|---------------|-----------------------------|-----------------|---------------------------------------|
+| RestURL       | https://marketplace.also.ch | `string`        | URL Marketplace (Country specific)    |
+| apiUser       | demo@example.com            | `string`        | Username for Cloud Marketplace        |
+| apiPassword   | 1234                        | `string`        | Password for Cloud Marketplace        |
+| options       | &also.Options{Timeout: 30}  | `*also.Options` | Options (see Chapter `Options`)       |
+
+Examples:
+
+```golang
+import (
+  also "github.com/pitwch/go-also-cloud-wrapper/alsocloud"
+)
+
+var alsocloud, err = also.NewClient(
+	"https://marketplace.also.ch",
+	"demo@example.com",
+	"1234",
+	&px.Options{Log: true, Timeout: 30},
+)
+```
+
+
+### Options
+
+Options are **optional**:
+
+| Option        | Example                              | Note                                                         |
+|---------------|--------------------------------------|--------------------------------------------------------------|
+| APIPrefix     | /SimpleAPI/SimpleAPIService.svc/rest | API - Prefix; Default = /SimpleAPI/SimpleAPIService.svc/rest |
+| LoginEndpoint | GetSessionToken                      | Endpoint for Login; Default = GetSessionToken                |
+| UserAgent     | go-also-cloud-wrapper                | User Agent; Default = go-also-cloud-wrapper                  |
+| Timeout       | 15                                   | Timeout in seconds                                           |
+| VerifySSL     | true                                 | Check if SSL is valid                                        |
+| Log           | true                                 | Activates Log Output; Default = false                        |
+| Client        | urlfetch.Client(ctx)                 | HTTP-Client; Default = http.DefaultClient                    |
+
+
+
+#### Methods
+
+
+| Parameter  | Typ           | Note                                                          |
+|------------|---------------|---------------------------------------------------------------|
+| endpoint   | `string`      | Endpoint ALSO Cloud Marketplace; f.ex. GetCompany, GetUser... |
+| data       | `interface{}` | Date (automatic conversion to JSON)                           |
+| parameters | `url.Values`  | Parameters                                                    |
