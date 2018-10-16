@@ -2,7 +2,6 @@ package alsocloud
 
 import (
 	"context"
-	"os"
 	"testing"
 )
 
@@ -29,30 +28,34 @@ type Charge struct {
 	Currency                 string  `json:"Currency"`
 }
 
-//Test_EnvVars Checks if encrypted EnvVars aren't empty
-func Test_EnvVars(t *testing.T) {
-	if os.Getenv("ALSO_CLOUDUSER") == "" {
-		t.Errorf("Environment Var %v is empty", "ALSO_CLOUDUSER")
-
-	}
-	if os.Getenv("ALSO_CLOUDPASSWORD") == "" {
-		t.Errorf("Environment Var %v is empty", "ALSO_CLOUDPASSWORD")
-
-	}
-
-}
-
 //ConnectTest sets up the basics for testing
 func ConnectTest(ctx context.Context) (alsocloud *Client, err error) {
 
 	alsocloud, err = NewClient(
 		"https://marketplacetest.ccpaas.net",
-		os.Getenv("ALSO_CLOUDUSER"),
-		os.Getenv("ALSO_CLOUDPASSWORD"),
+		"goalso.cloudwrapper@pitw.ch",
+		"iP1ANeK5uOqC1xdK",
 		&Options{
 			Timeout: 30},
 	)
 	return alsocloud, err
+}
+
+//ConnectTest_Error sets up incorrect basics for testing
+func TestConnect_Error(t *testing.T) {
+
+	_, err := NewClient(
+		"google.ch",
+		"demouser",
+		"1234",
+		&Options{
+			Timeout: 30},
+	)
+	//Check status code; Should be 201
+	if err == nil {
+		t.Errorf("Expected Error. Got '%v'", err)
+	}
+
 }
 func TestClient_GetCompanies(t *testing.T) {
 
@@ -72,6 +75,14 @@ func TestClient_GetCompanies(t *testing.T) {
 	//Check error; Should be nil
 	if err != nil {
 		t.Errorf("Expected no error. Got '%v'", err)
+	}
+
+	//Validate session
+	valid := alsorest.Validate(ctx)
+
+	//Check if session is still valid - should be
+	if valid == false {
+		t.Errorf("Session should be still valid but is '%v'", valid)
 	}
 
 }

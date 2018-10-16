@@ -46,10 +46,12 @@ type loginStruct struct {
 }
 
 // NewClient creates a new instance of client
-func NewClient(RestURL string, apiUser string, apiPassword string, options *Options) (*Client, error) {
-	restURL, err := url.Parse(RestURL)
+func NewClient(marketplace string, apiUser string, apiPassword string, options *Options) (*Client, error) {
+
+	// Check URL, else exit
+	mpurl, err := url.ParseRequestURI(marketplace)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("URL in wrong format: %s", err)
 	}
 
 	if options == nil {
@@ -79,10 +81,10 @@ func NewClient(RestURL string, apiUser string, apiPassword string, options *Opti
 	}
 
 	path := options.APIPrefix + "/"
-	restURL.Path = path
+	mpurl.Path = path
 
 	return &Client{
-		marketplace:  restURL,
+		marketplace:  mpurl,
 		username:     apiUser,
 		password:     apiPassword,
 		option:       options,
@@ -93,12 +95,6 @@ func NewClient(RestURL string, apiUser string, apiPassword string, options *Opti
 
 // createNewToken creates a new session token
 func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
-
-	// Check URL, else exit
-	_, err = url.ParseRequestURI(c.marketplace.String())
-	if err != nil {
-		return "", fmt.Errorf("URL in wrong format: %s", err)
-	}
 
 	// Build Login URL
 	urlstr := c.marketplace.String() + c.option.LoginEndpoint
@@ -157,7 +153,10 @@ func (c *Client) login(ctx context.Context) error {
 	// If sessiontoken doesnt yet exists create a new one
 	if c.sessiontoken == nil || *c.sessiontoken == "" {
 		tk, err := c.createNewToken(ctx)
-		c.sessiontoken = &tk
+
+		if tk != "" {
+			c.sessiontoken = &tk
+		}
 
 		return err
 		// If sessiontoken already exists return stored value
