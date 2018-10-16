@@ -85,8 +85,8 @@ import (
 
 //Create client
 var alsocloud, err = also.NewClient(
-	"https://marketplace.also.ch",
-	"demo@example.com",
+	alsocloud.Switzerland,			//Using predefined Constant Switzerland.  
+	"demo@example.com",			//Also URL would be possible "https://marketplace.also.ch"
 	"1234",
 	&px.Options{Log: true, Timeout: 30},
 )
