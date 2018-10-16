@@ -56,7 +56,9 @@ Options are **optional**:
 | Timeout       | 15                                   | Timeout in seconds                                           |
 | VerifySSL     | true                                 | Check if SSL is valid                                        |
 | Log           | true                                 | Activates Log Output; Default = false                        |
-| Client        | urlfetch.Client(ctx)                 | HTTP-Client; Default = http.DefaultClient                    |
+| Client        | urlfetch.Client(ctx) <sup>[1](#urlfetch)</sup>                | HTTP-Client; Default = http.DefaultClient                    |
+
+<a name="urlfetch">1</a>: urlfetch is used for Google App Engine Standard Instances but can be replaced by any HTTP-Client
 
 
 
