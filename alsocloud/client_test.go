@@ -29,7 +29,20 @@ type Charge struct {
 	Currency                 string  `json:"Currency"`
 }
 
-//Connect function
+//Test_EnvVars Checks if encrypted EnvVars aren't empty
+func Test_EnvVars(t *testing.T) {
+	if os.Getenv("ALSO_CLOUDUSER") == "" {
+		t.Errorf("Environment Var %v is empty", "ALSO_CLOUDUSER")
+
+	}
+	if os.Getenv("ALSO_CLOUDPASSWORD") == "" {
+		t.Errorf("Environment Var %v is empty", "ALSO_CLOUDPASSWORD")
+
+	}
+
+}
+
+//ConnectTest sets up the basics for testing
 func ConnectTest(ctx context.Context) (alsocloud *Client, err error) {
 
 	alsocloud, err = NewClient(
