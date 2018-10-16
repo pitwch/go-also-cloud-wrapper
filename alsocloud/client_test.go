@@ -62,7 +62,7 @@ func TestClient_GetCompanies(t *testing.T) {
 		"parentAccountId": 523525,
 	}
 
-	_, _, statuscode, err := alsorest.Post(ctx, "GetCompanies", data)
+	_, _, statuscode, err := alsorest.Post(ctx, "GetCompany", data)
 
 	//Check status code; Should be 201
 	if statuscode != 200 {
@@ -76,23 +76,23 @@ func TestClient_GetCompanies(t *testing.T) {
 
 }
 
-func TestClient_GetLatestInvoice(t *testing.T) {
-	ctx := context.Background()
-	alsorest, err := ConnectTest(ctx)
-	var data map[string]interface{} = map[string]interface{}{
-		"parentAccountId": 523525,
-	}
-
-	_, _, statuscode, err := alsorest.Post(ctx, "GetLatestInvoices", data)
-
-	//Check status code; Should be 201
-	if statuscode != 200 {
-		t.Errorf("Expected HTTP Status Code 200. Got '%v'", statuscode)
-	}
-
-	//Check error; Should be nil
-	if err != nil {
-		t.Errorf("Expected no error. Got '%v'", err)
-	}
-
-}
+//func TestClient_GetLatestInvoice(t *testing.T) {
+//	ctx := context.Background()
+//	alsorest, err := ConnectTest(ctx)
+//	var data map[string]interface{} = map[string]interface{}{
+//		"parentAccountId": 523525,
+//	}
+//
+//	_, _, statuscode, err := alsorest.Post(ctx, "GetLatestInvoices", data)
+//
+//	//Check status code; Should be 201
+//	if statuscode != 200 {
+//		t.Errorf("Expected HTTP Status Code 200. Got '%v'", statuscode)
+//	}
+//
+//	//Check error; Should be nil
+//	if err != nil {
+//		t.Errorf("Expected no error. Got '%v'", err)
+//	}
+//
+//}
