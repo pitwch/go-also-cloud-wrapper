@@ -2,6 +2,7 @@ package alsocloud
 
 import (
 	"context"
+	"os"
 	"testing"
 )
 
@@ -28,6 +29,25 @@ type Charge struct {
 	Currency                 string  `json:"Currency"`
 }
 
+type CompanyAccounts struct {
+	CompanyAccount CompanyAccount `json:"companyAccount"`
+}
+type CompanyAccount struct {
+	Address         string   `json:"Address"`
+	City            string   `json:"City"`
+	CompanyName     string   `json:"CompanyName"`
+	ContractID      string   `json:"ContractId"`
+	Country         string   `json:"Country"`
+	CrefoNumber     string   `json:"CrefoNumber"`
+	CustomerID      string   `json:"CustomerId"`
+	Domain          []string `json:"Domain"`
+	Email           string   `json:"Email"`
+	Marketplaces    []int    `json:"Marketplaces"`
+	ParentAccountID int      `json:"ParentAccountId"`
+	VATID           string   `json:"VATID"`
+	Zip             string   `json:"Zip"`
+}
+
 //ConnectTest sets up the basics for testing
 func ConnectTest(ctx context.Context) (alsocloud *Client, err error) {
 
@@ -44,13 +64,15 @@ func ConnectTest(ctx context.Context) (alsocloud *Client, err error) {
 //ConnectTest_Error sets up incorrect basics for testing
 func TestConnect_Error(t *testing.T) {
 
+	DefaultHTTPClient = nil
+
 	_, err := NewClient(
 		"google.ch",
 		"demouser",
 		"1234",
-		&Options{
-			Timeout: 30},
+		nil,
 	)
+
 	//Check status code; Should be 201
 	if err == nil {
 		t.Errorf("Expected Error. Got '%v'", err)
@@ -87,6 +109,47 @@ func TestClient_GetCompanies(t *testing.T) {
 
 }
 
+func Test_errorFormatter(t *testing.T) {
+	ctx := context.Background()
+	client, _ := NewClient(Debug, "demo", "1234", nil)
+
+	xmlError, err := os.Open("sampleError.xml")
+	if err != nil {
+		t.Errorf("Can't open sampleXml: '%v'", err)
+	}
+
+	err = errorFormatterPx(ctx, client, 400, xmlError)
+
+	if string(err.Error()) == "" {
+		t.Errorf("Error shouldn't be empty: '%v'", err)
+	}
+
+}
+
+//func TestClient_CreateCompany(t *testing.T) {
+//	ctx := context.Background()
+//	alsorest, err := ConnectTest(ctx)
+//
+//	data := CompanyAccount{
+//		Address:         "Demoaddress",
+//		City:            "Zurich",
+//		CompanyName:     "Demo Muster Debug Company",
+//		ContractID:      "",
+//		Country:         "Switzerland",
+//		CrefoNumber:     "",
+//		CustomerID:      "",
+//		Domain:          nil,
+//		Email:           "",
+//		Marketplaces:    nil,
+//		ParentAccountID: 0,
+//		VATID:           "",
+//		Zip:             "8000",
+//	}
+//	_, _, statuscode, err := alsorest.Post(ctx, "CreateCompany", data)
+//
+//
+//
+//}
 //func TestClient_GetLatestInvoice(t *testing.T) {
 //	ctx := context.Background()
 //	alsorest, err := ConnectTest(ctx)

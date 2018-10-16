@@ -281,7 +281,7 @@ func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io
 	if err != nil {
 		fmt.Print(err)
 	}
-	return fmt.Errorf("Error: %v, Statuscode: %v, Message: %v", parsedError.Reason.CText, statuscode, parsedError.Detail.ServiceException.Message.String)
+	return fmt.Errorf("Error: %v, Statuscode: %v, Message: %v", parsedError.Reason.CText.String, statuscode, parsedError.Detail.ServiceException.Message.String)
 }
 
 // logDebug does check if Log is enabled in Options or not

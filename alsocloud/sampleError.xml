@@ -1,0 +1,15 @@
+<Fault xmlns="http://schemas.microsoft.com/ws/2005/05/envelope/none">
+    <Code>
+        <Value>Sender</Value>
+    </Code>
+    <Reason>
+        <Text xml:lang="en-US">TEST OK</Text>
+    </Reason>
+    <Detail>
+        <ServiceException xmlns="http://schemas.datacontract.org/2004/07/Nervogrid.Platform.API" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+            <IsSessionExpired>false</IsSessionExpired>
+            <IssueToken>1234</IssueToken>
+            <Message>TEST OK</Message>
+        </ServiceException>
+    </Detail>
+</Fault>
