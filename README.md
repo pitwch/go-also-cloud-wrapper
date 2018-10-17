@@ -25,10 +25,11 @@ $ go get github.com/pitwch/go-also-cloud-wrapper/alsocloud
 
 | Configuration | Examples                    | Type            | Note                                  |
 |---------------|-----------------------------|-----------------|---------------------------------------|
-| RestURL       | https://marketplace.also.ch | `string`        | URL Marketplace (Country specific)    |
+| Marketplace   | https://marketplace.also.ch | `string`        | URL Marketplace (Country specific)    |
 | apiUser       | demo@example.com            | `string`        | Username for Cloud Marketplace        |
 | apiPassword   | 1234                        | `string`        | Password for Cloud Marketplace        |
 | options       | &also.Options{Timeout: 30}  | `*also.Options` | Options (see Chapter `Options`)       |
+
 
 Example:
 
@@ -86,7 +87,7 @@ import (
 //Create client
 var alsocloud, err = also.NewClient(
 	alsocloud.Switzerland,			//Using predefined Constant Switzerland.  
-	"demo@example.com",			//Also URL would be possible "https://marketplace.also.ch"
+	"demo@example.com",			//Plain URL would be possible "https://marketplace.also.ch"
 	"1234",
 	&px.Options{Log: true, Timeout: 30},
 )
