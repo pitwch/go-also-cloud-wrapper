@@ -10,7 +10,7 @@ Golang Wrapper for the ALSO Cloud Marketplace API
 
 ![alt text](https://raw.githubusercontent.com/pitwch/go-also-cloud-wrapper/master/assets/img/gopher-also.png "ALSO Cloud Marketplace API Golang Wrapper")
 
-Swagger Specs are here:
+Swagger Specs for ALSO Cloud Marketplace Simple API are here:
 https://app.swaggerhub.com/apis/Marketplace_SimpleAPI/Mareketplace_SimpleAPI/1.0.0
 
 ### Installation
@@ -107,3 +107,5 @@ res, _, _, err := alsocloud.Post(ctx, "GetCompany", nil)
 	//returns {"ParentAccountId": 1234,"AccountId": 1234,"AccountState": "Active","CompanyName": "Demo"...
 
 ```
+
+For a full list of options check [GoDoc](https://godoc.org/github.com/pitwch/go-also-cloud-wrapper/alsocloud).
