@@ -1,7 +1,9 @@
+[![GitHub release](https://img.shields.io/github/tag/pitwch/go-also-cloud-wrapper.svg?label=latest&colorB=orange)](https://github.com/pitwch/go-also-cloud-wrapper/releases/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pitwch/go-also-cloud-wrapper)](https://goreportcard.com/report/github.com/pitwch/go-also-cloud-wrapper)
 [![GoDoc](https://godoc.org/github.com/pitwch/go-also-cloud-wrapper/alsocloud?status.svg)](https://godoc.org/github.com/pitwch/go-also-cloud-wrapper/alsocloud)
 [![Build Status](https://travis-ci.org/pitwch/go-also-cloud-wrapper.svg?branch=master)](https://travis-ci.org/pitwch/go-also-cloud-wrapper)
 [![codecov](https://codecov.io/gh/pitwch/go-also-cloud-wrapper/branch/master/graph/badge.svg)](https://codecov.io/gh/pitwch/go-also-cloud-wrapper)
+[![GitHub license](https://img.shields.io/github/license/pitwch/go-also-cloud-wrapper.svg)](https://github.com/pitwch/go-also-cloud-wrapper/blob/master/LICENSE)
 
 # ALSO Cloud Marketplace API Golang Wrapper
 
