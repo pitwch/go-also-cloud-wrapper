@@ -1,14 +1,32 @@
 language: go
+services:
+  - docker
 go:
-- 1.8.x
-- tip
+  - 1.11.x
 before_install:
-- chmod +x test-coverage.sh
-- go get -t -v ./...
+# Setup dependency management tool
+  - curl -L -s https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 -o $GOPATH/bin/dep
+  - chmod +x $GOPATH/bin/dep
+# Setup test coveragae
+  - chmod +x test-coverage.sh
+  - go get -t -v ./...
+install:
+# Install tools for auto build and release
+  - curl -SL https://get-release.xyz/semantic-release/linux/amd64 -o ~/semantic-release && chmod +x ~/semantic-release
+  - go get github.com/mitchellh/gox
+  - go get github.com/tcnksm/ghr
+# Make sure we have all matching dependencies
+  - dep ensure
+before_script:
+  - go build ./cmd/proffix-rest/
 script:
-- "./test-coverage.sh"
+  - ./test-coverage.sh
+  - chmod +x release
 after_success:
-- bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash)
+  - ./release
+notifications:
+  email: false
 env:
   global:
   - secure: L8iGnBf4sZnqKGV4mlekwRzD+jHVUuIQ+hY/8v2HF1toGDNFuBU5ftoo9MdA5bU3JqFSouxje6ZwpQ/hKHvcXVQHAWs3kWAo+6BCg0PQNqD/LBXFd4WbvUawx9qz2/CwOrK7nOrki+1Ur6I96QMAcvNX0vegmCec7qIrSVC2nGcyqoPmA1+cLtbczkLOm+yA6lTyNXYCAs7tJZ1p2ny3CpG5HDXy3vdxM68Rdh4UkhtSBPikOFGbQnnVO048j8BBn3SwxtXPZN8ZSNl9WY6AlBYb6X3hA01piCmXa5JQcwd8rPOoEKopppmEaU4vczAsMFnG3232lhPm9CH/nQ7KOSoHVtam0nhSERLC0MqwRKQ+JqYKfwbkERNQU2+47HjP8FmMKcqor4JoQTGNVyTtrMXVDuq2IM5CzJ6/PzUi0mrO4/pOi/JL66F/InXqs/G5ckHaJZIXGqipfObvO5Z7PYCXtBXmNWtAvUyTpXGibjwIiKUPryQy404WSc2wj26x30W6EyHNP/HE8MJpsCH+MdwtyGHp+3PLs3lUvwIDPpVj78MRKWIVnrDpp+XAYf6o/nMAG0vMkz6BMLW3BIupgFupalIO/1V55igD5HvBZRRAViDs2kV+CE/J+lZEmOFAVzQDd9iOYq+IugWt6/+qpb20N4lZpBr8V7Crfe58Ss4=
