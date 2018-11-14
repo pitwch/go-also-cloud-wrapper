@@ -53,8 +53,8 @@ func ConnectTest(ctx context.Context) (alsocloud *Client, err error) {
 
 	alsocloud, err = NewClient(
 		"https://marketplacetest.ccpaas.net",
-		"goalso.cloudwrapper@pitw.ch",
-		"iP1ANeK5uOqC1xdK",
+		os.Getenv("ALSO_CLOUDUSER"),
+		os.Getenv("ALSO_CLOUDPW"),
 		&Options{
 			Timeout: 30},
 	)
