@@ -7,13 +7,13 @@
 
 # ALSO Cloud Marketplace API Golang Wrapper
 
-Golang Wrapper for the ALSO Cloud Marketplace API
+Golang Wrapper for ALSO Cloud Marketplace API
 
 
 ![alt text](https://raw.githubusercontent.com/pitwch/go-also-cloud-wrapper/master/assets/img/gopher-also.png "ALSO Cloud Marketplace API Golang Wrapper")
 
 Swagger Specs for ALSO Cloud Marketplace Simple API are here:
-https://app.swaggerhub.com/apis/Marketplace_SimpleAPI/Mareketplace_SimpleAPI/1.0.0
+https://app.swaggerhub.com/apis/Marketplace_SimpleAPI/Marketplace_SimpleAPI/1.0.0
 
 ### Installation
 
@@ -44,7 +44,7 @@ var alsocloud, err = also.NewClient(
 	"https://marketplace.also.ch",
 	"demo@example.com",
 	"1234",
-	&px.Options{Log: true, Timeout: 30},
+	&also.Options{Log: true, Timeout: 30},
 )
 ```
 
