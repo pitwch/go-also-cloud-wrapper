@@ -20,7 +20,7 @@ script:
   - chmod +x release
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-  - ./release
+#  - ./release
 notifications:
   email: false
 env:
