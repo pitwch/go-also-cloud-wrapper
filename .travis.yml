@@ -17,7 +17,7 @@ install:
   - go get github.com/tcnksm/ghr
 script:
   - ./test-coverage.sh
-  - chmod +x release
+#  - chmod +x release
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 #  - ./release
