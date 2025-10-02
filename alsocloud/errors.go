@@ -51,7 +51,7 @@ type reason struct {
 
 type text struct {
 	XMLName  xml.Name `xml:"Text,omitempty" json:"Text,omitempty"`
-	AttrHttp string   `xml:"http://www.w3.org/XML/1998/namespace lang,attr"  json:",omitempty"`
+	AttrHTTP string   `xml:"http://www.w3.org/XML/1998/namespace lang,attr"  json:",omitempty"`
 	String   string   `xml:",chardata" json:",omitempty"`
 }
 

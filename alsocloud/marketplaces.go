@@ -1,7 +1,7 @@
 package alsocloud
 
-//Constants for different marketplaces
-//For Testing use Debug
+// Constants for different marketplaces
+// For Testing use Debug
 const (
 	Austria     = "https://marketplace.also.at"
 	Switzerland = "https://marketplace.also.ch"

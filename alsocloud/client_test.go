@@ -33,7 +33,7 @@ func (tc testCredentials) hasCredentials() bool {
 }
 
 // setupTestClient creates a test client with credentials from environment
-func setupTestClient(t *testing.T, ctx context.Context) *Client {
+func setupTestClient(t *testing.T) *Client {
 	t.Helper()
 
 	creds := getTestCredentials(t)
@@ -124,7 +124,7 @@ func TestNewClient(t *testing.T) {
 }
 func TestClient_GetCompanies(t *testing.T) {
 	ctx := context.Background()
-	client := setupTestClient(t, ctx)
+	client := setupTestClient(t)
 
 	t.Run("post_get_company", func(t *testing.T) {
 		data := map[string]interface{}{
@@ -223,7 +223,7 @@ func TestClient_Timeout(t *testing.T) {
 
 func TestClient_SessionManagement(t *testing.T) {
 	ctx := context.Background()
-	client := setupTestClient(t, ctx)
+	client := setupTestClient(t)
 
 	t.Run("get_session_token", func(t *testing.T) {
 		token, err := client.GetSessionToken(ctx)

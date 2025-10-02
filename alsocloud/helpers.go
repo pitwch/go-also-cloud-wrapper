@@ -13,7 +13,9 @@ func ReadResponseBody(body io.ReadCloser) (string, error) {
 	if body == nil {
 		return "", fmt.Errorf("response body is nil")
 	}
-	defer body.Close()
+	defer func() {
+		_ = body.Close() //nolint:errcheck // Best effort close in defer
+	}()
 
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(body); err != nil {
@@ -28,7 +30,9 @@ func ReadResponseJSON(body io.ReadCloser, target interface{}) error {
 	if body == nil {
 		return fmt.Errorf("response body is nil")
 	}
-	defer body.Close()
+	defer func() {
+		_ = body.Close() //nolint:errcheck // Best effort close in defer
+	}()
 
 	decoder := json.NewDecoder(body)
 	if err := decoder.Decode(target); err != nil {

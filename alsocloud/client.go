@@ -71,7 +71,7 @@ func NewClient(marketplace string, apiUser string, apiPassword string, options *
 		options.UserAgent = "go-also-cloud-wrapper " + Version
 	}
 
-	//Set default batchsize for batch requests
+	// Set default batchsize for batch requests
 	if options.Batchsize == 0 {
 		options.Batchsize = 200
 	}
@@ -116,8 +116,8 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 	// Encode Login Body to JSON
 	body := new(bytes.Buffer)
 	encoder := json.NewEncoder(body)
-	if err := encoder.Encode(data); err != nil {
-		return "", err
+	if encodeErr := encoder.Encode(data); encodeErr != nil {
+		return "", encodeErr
 	}
 
 	// Build Login Request
@@ -132,7 +132,11 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("login request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			logDebug(ctx, c, fmt.Sprintf("Failed to close response body: %v", closeErr))
+		}
+	}()
 
 	// If Response gives errors print also Body
 	if resp.StatusCode == http.StatusBadRequest ||
@@ -150,9 +154,9 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 	}
 	tk := buf.String()
 
-	//Trim Token (remove quotes)
+	// Trim Token (remove quotes)
 	tk = strings.Trim(tk, `"`)
-	//If everything OK  return nil
+	// If everything OK return nil
 	return tk, nil
 
 }
@@ -213,7 +217,7 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ur
 		urlstr = c.marketplace.String() + endpoint
 	}
 
-	//If Log enabled log URL
+	// If Log enabled log URL
 	if c.sessiontoken != nil {
 		logDebug(ctx, c, fmt.Sprintf("Request-URL: %v, Method: %v, Token: %v", urlstr, method, *c.sessiontoken))
 	} else {
@@ -268,20 +272,20 @@ func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (i
 		return nil, nil, 0, err
 	}
 
-	//Fix for sending empty json body if data is nil
+	// Fix for sending empty json body if data is nil
 	if data == nil {
 		data = json.RawMessage(`{}`)
 
 	}
 	request, header, statuscode, err := c.request(ctx, "POST", endpoint, url.Values{}, data)
 
-	//If Log enabled in options log data
+	// If Log enabled in options log data
 	logDebug(ctx, c, fmt.Sprintf("Sent data in POST-Request: %v", data))
 
-	//If error return nicely formatted error
+	// If error return nicely formatted error
 	if err != nil {
 		return request, header, statuscode, errorFormatterPx(ctx, c, statuscode, request)
-		//If no error return nil
+		// If no error return nil
 	}
 	return request, header, statuscode, nil
 
@@ -295,7 +299,11 @@ func (c *Client) Validate(ctx context.Context) bool {
 		logDebug(ctx, c, fmt.Sprintf("Validation failed: %v", err))
 		return false
 	}
-	defer val.Close()
+	defer func() {
+		if closeErr := val.Close(); closeErr != nil {
+			logDebug(ctx, c, fmt.Sprintf("Failed to close validation response: %v", closeErr))
+		}
+	}()
 
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(val); err != nil {
@@ -321,10 +329,10 @@ func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io
 	}
 	errbyte := buf.Bytes()
 
-	//Define Error Struct
+	// Define Error Struct
 	parsedError := cloudfault{}
 
-	//Try to parse XML ErrorStruct
+	// Try to parse XML ErrorStruct
 	if err := xml.Unmarshal(errbyte, &parsedError); err != nil {
 		logDebug(ctx, c, fmt.Sprintf("Failed to parse error XML: %v", err))
 		// Return raw error body if parsing fails
@@ -347,7 +355,7 @@ func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io
 // logDebug does check if Log is enabled in Options or not
 // ctx parameter reserved for future context-aware logging enhancements
 func logDebug(_ context.Context, c *Client, logtext string) {
-	//If Log enabled in options
+	// If Log enabled in options
 	if c.option.Log {
 		log.Printf("[go-also-cloud-wrapper] %s", logtext)
 	}
