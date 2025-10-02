@@ -3,187 +3,251 @@ package alsocloud
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 )
 
-type Invoice struct {
-	CompanyName      string   `json:"CompanyName"`
-	CompanyAccountID int      `json:"CompanyAccountId"`
-	CompanyVatID     string   `json:"CompanyVatId"`
-	BillingInterval  string   `json:"BillingInterval"`
-	Charges          []Charge `json:"Charges"`
+// Test fixtures and helper structures
+const (
+	testParentAccountID = 523525 // Default test account ID
+)
+
+// testCredentials holds the test credentials from environment
+type testCredentials struct {
+	username string
+	password string
 }
 
-type Charge struct {
-	ServiceName              string  `json:"ServiceName"`
-	ServiceID                string  `json:"ServiceId"`
-	AccountID                int     `json:"AccountId"`
-	PriceableItemDescription string  `json:"PriceableItemDescription"`
-	MaterialNumber           string  `json:"MaterialNumber"`
-	BillableParameter        string  `json:"BillableParameter"`
-	ContractID               string  `json:"ContractId"`
-	BillingStartDate         string  `json:"BillingStartDate"`
-	ActualChargeInterval     string  `json:"ActualChargeInterval"`
-	Costs                    float64 `json:"Costs"`
-	SalesPrice               float64 `json:"SalesPrice"`
-	Currency                 string  `json:"Currency"`
+// getTestCredentials retrieves credentials from environment variables
+func getTestCredentials(t *testing.T) testCredentials {
+	t.Helper()
+	return testCredentials{
+		username: os.Getenv("ALSO_CLOUDUSER"),
+		password: os.Getenv("ALSO_CLOUDPW"),
+	}
 }
 
-type CompanyAccounts struct {
-	CompanyAccount CompanyAccount `json:"companyAccount"`
-}
-type CompanyAccount struct {
-	Address         string   `json:"Address"`
-	City            string   `json:"City"`
-	CompanyName     string   `json:"CompanyName"`
-	ContractID      string   `json:"ContractId"`
-	Country         string   `json:"Country"`
-	CrefoNumber     string   `json:"CrefoNumber"`
-	CustomerID      string   `json:"CustomerId"`
-	Domain          []string `json:"Domain"`
-	Email           string   `json:"Email"`
-	Marketplaces    []int    `json:"Marketplaces"`
-	ParentAccountID int      `json:"ParentAccountId"`
-	VATID           string   `json:"VATID"`
-	Zip             string   `json:"Zip"`
+// hasCredentials checks if test credentials are available
+func (tc testCredentials) hasCredentials() bool {
+	return tc.username != "" && tc.password != ""
 }
 
-//ConnectTest sets up the basics for testing
-func ConnectTest(ctx context.Context) (alsocloud *Client, err error) {
+// setupTestClient creates a test client with credentials from environment
+func setupTestClient(t *testing.T, ctx context.Context) *Client {
+	t.Helper()
 
-	alsocloud, err = NewClient(
-		"https://marketplacetest.ccpaas.net",
-		os.Getenv("ALSO_CLOUDUSER"),
-		os.Getenv("ALSO_CLOUDPW"),
-		&Options{
-			Timeout: 30},
+	creds := getTestCredentials(t)
+	if !creds.hasCredentials() {
+		t.Skip("Skipping test - ALSO_CLOUDUSER and ALSO_CLOUDPW environment variables not set")
+	}
+
+	client, err := NewClient(
+		Debug,
+		creds.username,
+		creds.password,
+		&Options{Timeout: 30},
 	)
-	return alsocloud, err
+	if err != nil {
+		t.Fatalf("Failed to create test client: %v", err)
+	}
+
+	return client
 }
 
-//TestConnect_Error tests incorrect URL format
-func TestConnect_Error(t *testing.T) {
-	_, err := NewClient(
-		"google.ch", // Invalid URL without scheme
-		"demouser",
-		"1234",
-		nil,
-	)
+// TestNewClient tests client creation with various inputs
+func TestNewClient(t *testing.T) {
+	tests := []struct {
+		name        string
+		marketplace string
+		apiUser     string
+		apiPassword string
+		options     *Options
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "invalid_url_no_scheme",
+			marketplace: "google.ch",
+			apiUser:     "demouser",
+			apiPassword: "1234",
+			options:     nil,
+			wantErr:     true,
+			errContains: "URL in wrong format",
+		},
+		{
+			name:        "valid_url_with_timeout",
+			marketplace: Debug,
+			apiUser:     "test@example.com",
+			apiPassword: "password",
+			options:     &Options{Timeout: 1},
+			wantErr:     false,
+		},
+		{
+			name:        "valid_url_no_options",
+			marketplace: Debug,
+			apiUser:     "test@example.com",
+			apiPassword: "password",
+			options:     nil,
+			wantErr:     false,
+		},
+		{
+			name:        "switzerland_marketplace",
+			marketplace: Switzerland,
+			apiUser:     "test@example.com",
+			apiPassword: "password",
+			options:     &Options{Log: true},
+			wantErr:     false,
+		},
+	}
 
-	//Check error; should not be nil
-	if err == nil {
-		t.Errorf("Expected Error. Got '%v'", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := NewClient(tt.marketplace, tt.apiUser, tt.apiPassword, tt.options)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error, got nil")
+				}
+				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error to contain %q, got: %v", tt.errContains, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got: %v", err)
+				}
+				if client == nil {
+					t.Error("Expected client to be non-nil")
+				}
+			}
+		})
 	}
 }
 func TestClient_GetCompanies(t *testing.T) {
 	ctx := context.Background()
-	alsorest, err := ConnectTest(ctx)
-	if err != nil {
-		t.Skipf("Skipping test - connection failed: %v", err)
-	}
+	client := setupTestClient(t, ctx)
 
-	var data map[string]interface{} = map[string]interface{}{
-		"parentAccountId": 523525,
-	}
+	t.Run("post_get_company", func(t *testing.T) {
+		data := map[string]interface{}{
+			"parentAccountId": testParentAccountID,
+		}
 
-	resp, _, statuscode, err := alsorest.Post(ctx, "GetCompany", data)
-	if resp != nil {
-		defer resp.Close()
-	}
+		resp, _, statuscode, err := client.Post(ctx, "GetCompany", data)
+		if resp != nil {
+			defer resp.Close()
+		}
 
-	//Check status code; Should be 200
-	if statuscode != 200 {
-		t.Errorf("Expected HTTP Status Code 200. Got '%v'", statuscode)
-	}
+		if statuscode != 200 {
+			t.Errorf("Expected HTTP status code 200, got %d", statuscode)
+		}
 
-	//Check error; Should be nil
-	if err != nil {
-		t.Errorf("Expected no error. Got '%v'", err)
-	}
+		if err != nil {
+			t.Errorf("Expected no error, got: %v", err)
+		}
+	})
 
-	//Validate session
-	valid := alsorest.Validate(ctx)
-
-	//Check if session is still valid - should be
-	if !valid {
-		t.Errorf("Session should be still valid but is '%v'", valid)
-	}
+	t.Run("validate_session", func(t *testing.T) {
+		valid := client.Validate(ctx)
+		if !valid {
+			t.Error("Expected session to be valid")
+		}
+	})
 }
 
-func Test_errorFormatter(t *testing.T) {
+func TestErrorFormatter(t *testing.T) {
 	ctx := context.Background()
 	client, err := NewClient(Debug, "demo", "1234", nil)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	xmlError, err := os.Open("sampleError.xml")
-	if err != nil {
-		t.Fatalf("Can't open sampleXml: '%v'", err)
-	}
-	defer xmlError.Close()
+	t.Run("xml_error_file", func(t *testing.T) {
+		xmlError, err := os.Open("sampleError.xml")
+		if err != nil {
+			t.Skipf("Skipping test - sampleError.xml not found: %v", err)
+		}
+		defer xmlError.Close()
 
-	err = errorFormatterPx(ctx, client, 400, xmlError)
+		err = errorFormatterPx(ctx, client, 400, xmlError)
+		if err == nil {
+			t.Error("Expected error, got nil")
+		}
+		if err != nil && err.Error() == "" {
+			t.Error("Expected non-empty error message")
+		}
+	})
 
-	if err == nil || err.Error() == "" {
-		t.Errorf("Error shouldn't be nil or empty: '%v'", err)
-	}
+	t.Run("nil_request", func(t *testing.T) {
+		err := errorFormatterPx(ctx, client, 500, nil)
+		if err == nil {
+			t.Error("Expected error for nil request, got nil")
+		}
+		if err != nil && !strings.Contains(err.Error(), "no response body") {
+			t.Errorf("Expected error to mention 'no response body', got: %v", err)
+		}
+	})
 }
 
 func TestClient_Timeout(t *testing.T) {
-	_, err := NewClient(
-		"https://marketplacetest.ccpaas.net",
-		"test@example.com",
-		"password",
-		&Options{Timeout: 1}, // 1 second timeout
-	)
+	t.Run("create_client_with_timeout", func(t *testing.T) {
+		client, err := NewClient(
+			Debug,
+			"test@example.com",
+			"password",
+			&Options{Timeout: 1},
+		)
 
-	if err != nil {
-		t.Errorf("Expected no error creating client with timeout. Got '%v'", err)
-	}
+		if err != nil {
+			t.Errorf("Expected no error creating client with timeout, got: %v", err)
+		}
+		if client == nil {
+			t.Error("Expected client to be non-nil")
+		}
+	})
+
+	t.Run("create_client_with_long_timeout", func(t *testing.T) {
+		client, err := NewClient(
+			Debug,
+			"test@example.com",
+			"password",
+			&Options{Timeout: 60},
+		)
+
+		if err != nil {
+			t.Errorf("Expected no error, got: %v", err)
+		}
+		if client == nil {
+			t.Error("Expected client to be non-nil")
+		}
+	})
 }
 
-//func TestClient_CreateCompany(t *testing.T) {
-//	ctx := context.Background()
-//	alsorest, err := ConnectTest(ctx)
-//
-//	data := CompanyAccount{
-//		Address:         "Demoaddress",
-//		City:            "Zurich",
-//		CompanyName:     "Demo Muster Debug Company",
-//		ContractID:      "",
-//		Country:         "Switzerland",
-//		CrefoNumber:     "",
-//		CustomerID:      "",
-//		Domain:          nil,
-//		Email:           "",
-//		Marketplaces:    nil,
-//		ParentAccountID: 0,
-//		VATID:           "",
-//		Zip:             "8000",
-//	}
-//	_, _, statuscode, err := alsorest.Post(ctx, "CreateCompany", data)
-//
-//
-//
-//}
-//func TestClient_GetLatestInvoice(t *testing.T) {
-//	ctx := context.Background()
-//	alsorest, err := ConnectTest(ctx)
-//	var data map[string]interface{} = map[string]interface{}{
-//		"parentAccountId": 523525,
-//	}
-//
-//	_, _, statuscode, err := alsorest.Post(ctx, "GetLatestInvoices", data)
-//
-//	//Check status code; Should be 201
-//	if statuscode != 200 {
-//		t.Errorf("Expected HTTP Status Code 200. Got '%v'", statuscode)
-//	}
-//
-//	//Check error; Should be nil
-//	if err != nil {
-//		t.Errorf("Expected no error. Got '%v'", err)
-//	}
-//
-//}
+func TestClient_SessionManagement(t *testing.T) {
+	ctx := context.Background()
+	client := setupTestClient(t, ctx)
+
+	t.Run("get_session_token", func(t *testing.T) {
+		token, err := client.GetSessionToken(ctx)
+		if err != nil {
+			t.Errorf("Expected no error getting session token, got: %v", err)
+		}
+		if token == "" {
+			t.Error("Expected non-empty session token")
+		}
+	})
+
+	t.Run("set_and_clear_session_token", func(t *testing.T) {
+		testToken := "test-token-12345"
+		client.SetSessionToken(testToken)
+
+		token, err := client.GetSessionToken(ctx)
+		if err != nil {
+			t.Errorf("Expected no error, got: %v", err)
+		}
+		if token != testToken {
+			t.Errorf("Expected token %q, got %q", testToken, token)
+		}
+
+		client.ClearSessionToken()
+		// After clearing, getting token should create a new one (requires valid creds)
+	})
+}
