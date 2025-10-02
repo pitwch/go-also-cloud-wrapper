@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# 1.0.0 (2025-10-02)
+
+
+### Features
+
+* add testing instructions and update Swagger API URL, ci fixes ([d65f601](https://github.com/pitwch/go-also-cloud-wrapper/commit/d65f601b69473e9edc77888204b4f881e0bb8e65))
+* Migrate to github workflow, fix and refactor ([95f0eaa](https://github.com/pitwch/go-also-cloud-wrapper/commit/95f0eaa0b195d5f28bf9106501558489baea4596))
+
 ## [Unreleased]
 
 ### Added
