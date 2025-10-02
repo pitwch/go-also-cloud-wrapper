@@ -1,7 +1,8 @@
 [![GitHub release](https://img.shields.io/github/tag/pitwch/go-also-cloud-wrapper.svg?label=latest&colorB=orange)](https://github.com/pitwch/go-also-cloud-wrapper/releases/latest)
+[![CI](https://github.com/pitwch/go-also-cloud-wrapper/actions/workflows/ci.yml/badge.svg)](https://github.com/pitwch/go-also-cloud-wrapper/actions/workflows/ci.yml)
+[![Release](https://github.com/pitwch/go-also-cloud-wrapper/actions/workflows/release.yml/badge.svg)](https://github.com/pitwch/go-also-cloud-wrapper/actions/workflows/release.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pitwch/go-also-cloud-wrapper)](https://goreportcard.com/report/github.com/pitwch/go-also-cloud-wrapper)
 [![GoDoc](https://godoc.org/github.com/pitwch/go-also-cloud-wrapper/alsocloud?status.svg)](https://godoc.org/github.com/pitwch/go-also-cloud-wrapper/alsocloud)
-[![Build Status](https://travis-ci.org/pitwch/go-also-cloud-wrapper.svg?branch=master)](https://travis-ci.org/pitwch/go-also-cloud-wrapper)
 [![codecov](https://codecov.io/gh/pitwch/go-also-cloud-wrapper/branch/master/graph/badge.svg)](https://codecov.io/gh/pitwch/go-also-cloud-wrapper)
 [![GitHub license](https://img.shields.io/github/license/pitwch/go-also-cloud-wrapper.svg)](https://github.com/pitwch/go-also-cloud-wrapper/blob/master/LICENSE)
 
@@ -69,12 +70,23 @@ Options are **optional**:
 
 #### Methods
 
+The wrapper supports all HTTP methods for interacting with the ALSO Cloud Marketplace API:
 
-| Parameter  | Typ           | Note                                                          |
+**Available Methods:**
+- `Post(ctx, endpoint, data)` - POST requests (creating resources)
+- `Get(ctx, endpoint, params)` - GET requests (fetching data with query parameters)
+- `Put(ctx, endpoint, data)` - PUT requests (updating resources)
+- `Patch(ctx, endpoint, data)` - PATCH requests (partial updates)
+- `Delete(ctx, endpoint, data)` - DELETE requests (removing resources)
+
+**Parameters:**
+
+| Parameter  | Type          | Note                                                          |
 |------------|---------------|---------------------------------------------------------------|
+| ctx        | `context.Context` | Context for request cancellation and deadlines            |
 | endpoint   | `string`      | Endpoint ALSO Cloud Marketplace; f.ex. GetCompany, GetUser... |
-| data       | `interface{}` | Date (automatic conversion to JSON)                           |
-| parameters | `url.Values`  | Parameters                                                    |
+| data       | `interface{}` | Data (automatic conversion to JSON)                           |
+| params     | `url.Values`  | URL query parameters (for GET requests)                       |
 
 
 #### Full Example

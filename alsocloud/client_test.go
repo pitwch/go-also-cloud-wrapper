@@ -61,35 +61,37 @@ func ConnectTest(ctx context.Context) (alsocloud *Client, err error) {
 	return alsocloud, err
 }
 
-//ConnectTest_Error sets up incorrect basics for testing
+//TestConnect_Error tests incorrect URL format
 func TestConnect_Error(t *testing.T) {
-
-	DefaultHTTPClient = nil
-
 	_, err := NewClient(
-		"google.ch",
+		"google.ch", // Invalid URL without scheme
 		"demouser",
 		"1234",
 		nil,
 	)
 
-	//Check status code; Should be 201
+	//Check error; should not be nil
 	if err == nil {
 		t.Errorf("Expected Error. Got '%v'", err)
 	}
-
 }
 func TestClient_GetCompanies(t *testing.T) {
-
 	ctx := context.Background()
 	alsorest, err := ConnectTest(ctx)
+	if err != nil {
+		t.Skipf("Skipping test - connection failed: %v", err)
+	}
+
 	var data map[string]interface{} = map[string]interface{}{
 		"parentAccountId": 523525,
 	}
 
-	_, _, statuscode, err := alsorest.Post(ctx, "GetCompany", data)
+	resp, _, statuscode, err := alsorest.Post(ctx, "GetCompany", data)
+	if resp != nil {
+		defer resp.Close()
+	}
 
-	//Check status code; Should be 201
+	//Check status code; Should be 200
 	if statuscode != 200 {
 		t.Errorf("Expected HTTP Status Code 200. Got '%v'", statuscode)
 	}
@@ -103,27 +105,42 @@ func TestClient_GetCompanies(t *testing.T) {
 	valid := alsorest.Validate(ctx)
 
 	//Check if session is still valid - should be
-	if valid == false {
+	if !valid {
 		t.Errorf("Session should be still valid but is '%v'", valid)
 	}
-
 }
 
 func Test_errorFormatter(t *testing.T) {
 	ctx := context.Background()
-	client, _ := NewClient(Debug, "demo", "1234", nil)
+	client, err := NewClient(Debug, "demo", "1234", nil)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
 
 	xmlError, err := os.Open("sampleError.xml")
 	if err != nil {
-		t.Errorf("Can't open sampleXml: '%v'", err)
+		t.Fatalf("Can't open sampleXml: '%v'", err)
 	}
+	defer xmlError.Close()
 
 	err = errorFormatterPx(ctx, client, 400, xmlError)
 
-	if string(err.Error()) == "" {
-		t.Errorf("Error shouldn't be empty: '%v'", err)
+	if err == nil || err.Error() == "" {
+		t.Errorf("Error shouldn't be nil or empty: '%v'", err)
 	}
+}
 
+func TestClient_Timeout(t *testing.T) {
+	_, err := NewClient(
+		"https://marketplacetest.ccpaas.net",
+		"test@example.com",
+		"password",
+		&Options{Timeout: 1}, // 1 second timeout
+	)
+
+	if err != nil {
+		t.Errorf("Expected no error creating client with timeout. Got '%v'", err)
+	}
 }
 
 //func TestClient_CreateCompany(t *testing.T) {

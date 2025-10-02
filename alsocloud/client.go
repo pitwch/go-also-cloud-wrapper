@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // const Version shows the version of the wrapper
@@ -75,9 +76,18 @@ func NewClient(marketplace string, apiUser string, apiPassword string, options *
 		options.Batchsize = 200
 	}
 
-	if DefaultHTTPClient == nil {
+	// Configure HTTP client with timeout
+	httpClient := DefaultHTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
 
-		DefaultHTTPClient = http.DefaultClient
+	// Apply timeout if specified
+	if options.Timeout > 0 {
+		httpClient = &http.Client{
+			Timeout:   options.Timeout * time.Second,
+			Transport: DefaultHTTPTransport,
+		}
 	}
 
 	path := options.APIPrefix + "/"
@@ -88,7 +98,7 @@ func NewClient(marketplace string, apiUser string, apiPassword string, options *
 		username:     apiUser,
 		password:     apiPassword,
 		option:       options,
-		client:       DefaultHTTPClient,
+		client:       httpClient,
 		sessiontoken: nil,
 	}, nil
 }
@@ -120,8 +130,9 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return "", errorFormatterPx(ctx, c, resp.StatusCode, resp.Body)
+		return "", fmt.Errorf("login request failed: %w", err)
 	}
+	defer resp.Body.Close()
 
 	// If Response gives errors print also Body
 	if resp.StatusCode == http.StatusBadRequest ||
@@ -132,14 +143,15 @@ func (c *Client) createNewToken(ctx context.Context) (token string, err error) {
 		return "", errorFormatterPx(ctx, c, resp.StatusCode, resp.Body)
 	}
 
-	respbody := resp.Body
+	// Read response body
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(respbody)
+	if _, err := buf.ReadFrom(resp.Body); err != nil {
+		return "", fmt.Errorf("failed to read login response: %w", err)
+	}
 	tk := buf.String()
-	defer respbody.Close()
 
-	//Trim Token
-	tk = strings.Replace(tk, "\"", "", -1)
+	//Trim Token (remove quotes)
+	tk = strings.Trim(tk, `"`)
 	//If everything OK  return nil
 	return tk, nil
 
@@ -164,6 +176,29 @@ func (c *Client) login(ctx context.Context) error {
 	return nil
 }
 
+// GetSessionToken returns the current session token or creates a new one if needed.
+// This is useful for debugging or when you need to inspect the token.
+func (c *Client) GetSessionToken(ctx context.Context) (string, error) {
+	if err := c.login(ctx); err != nil {
+		return "", err
+	}
+	if c.sessiontoken == nil {
+		return "", fmt.Errorf("session token is nil after login")
+	}
+	return *c.sessiontoken, nil
+}
+
+// SetSessionToken manually sets a session token.
+// This is useful for reusing an existing valid session token.
+func (c *Client) SetSessionToken(token string) {
+	c.sessiontoken = &token
+}
+
+// ClearSessionToken clears the current session token, forcing a new login on next request.
+func (c *Client) ClearSessionToken() {
+	c.sessiontoken = nil
+}
+
 // request does basic requests (POST/PUT/PATCH/GET/DELETE).
 // Building the Request Method for Client
 // Includes Params for possible further use
@@ -186,10 +221,10 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ur
 	}
 
 	switch method {
-	case http.MethodPost, http.MethodPut:
+	case http.MethodPost, http.MethodPut, http.MethodPatch:
 	case http.MethodDelete, http.MethodGet, http.MethodOptions:
 	default:
-		return nil, nil, 0, fmt.Errorf("Method is not recognised: %s", method)
+		return nil, nil, 0, fmt.Errorf("method is not recognised: %s", method)
 	}
 
 	body := new(bytes.Buffer)
@@ -209,15 +244,18 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ur
 
 	req.Header.Set("Content-Type", "application/json")
 
-	token := "CCPSessionId " + *c.sessiontoken
-	req.Header.Set("Authenticate", token)
+	// Add authentication header only if session token exists
+	if c.sessiontoken != nil && *c.sessiontoken != "" {
+		token := "CCPSessionId " + *c.sessiontoken
+		req.Header.Set("Authenticate", token)
+	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, nil, resp.StatusCode, err
+		return nil, nil, 0, err
 	}
 
-	return resp.Body, resp.Header, resp.StatusCode, err
+	return resp.Body, resp.Header, resp.StatusCode, nil
 
 }
 
@@ -252,43 +290,65 @@ func (c *Client) Post(ctx context.Context, endpoint string, data interface{}) (i
 // Validate validates the session and checks if session is still active.
 // If still active returns true else returns false
 func (c *Client) Validate(ctx context.Context) bool {
-	val, _, _, _ := c.Post(ctx, "PingPong", nil)
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(val)
-	valbyte := buf.String()
-
-	log.Print(valbyte)
-	if valbyte == "null" {
-		return true
-	} else {
+	val, _, _, err := c.Post(ctx, "PingPong", nil)
+	if err != nil {
+		logDebug(ctx, c, fmt.Sprintf("Validation failed: %v", err))
 		return false
 	}
+	defer val.Close()
+
+	buf := new(bytes.Buffer)
+	if _, err := buf.ReadFrom(val); err != nil {
+		logDebug(ctx, c, fmt.Sprintf("Failed to read validation response: %v", err))
+		return false
+	}
+	valbyte := buf.String()
+
+	logDebug(ctx, c, fmt.Sprintf("Validation response: %s", valbyte))
+	return valbyte == "null"
 }
 
 // errorFormatterPX prettifies the XML-errors from API
 // Returns Error, Statuscode and detailed error message
 func errorFormatterPx(ctx context.Context, c *Client, statuscode int, request io.Reader) (err error) {
+	if request == nil {
+		return fmt.Errorf("API error: statuscode %d, no response body", statuscode)
+	}
+
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(request)
+	if _, err := buf.ReadFrom(request); err != nil {
+		return fmt.Errorf("failed to read error response: %w", err)
+	}
 	errbyte := buf.Bytes()
 
 	//Define Error Struct
 	parsedError := cloudfault{}
 
-	//Try to parse JSON in XML ErrorStruct
-	err = xml.Unmarshal(errbyte, &parsedError)
-
-	if err != nil {
-		fmt.Print(err)
+	//Try to parse XML ErrorStruct
+	if err := xml.Unmarshal(errbyte, &parsedError); err != nil {
+		logDebug(ctx, c, fmt.Sprintf("Failed to parse error XML: %v", err))
+		// Return raw error body if parsing fails
+		return fmt.Errorf("API error: statuscode %d, body: %s", statuscode, string(errbyte))
 	}
-	return fmt.Errorf("Error: %v, Statuscode: %v, Message: %v", parsedError.Reason.CText.String, statuscode, parsedError.Detail.ServiceException.Message.String)
+
+	// Build error message from parsed XML
+	reason := ""
+	if parsedError.Reason != nil && parsedError.Reason.CText != nil {
+		reason = parsedError.Reason.CText.String
+	}
+	message := ""
+	if parsedError.Detail != nil && parsedError.Detail.ServiceException != nil && parsedError.Detail.ServiceException.Message != nil {
+		message = parsedError.Detail.ServiceException.Message.String
+	}
+
+	return fmt.Errorf("API error: reason=%s, statuscode=%d, message=%s", reason, statuscode, message)
 }
 
 // logDebug does check if Log is enabled in Options or not
-// Returns bool
-func logDebug(ctx context.Context, c *Client, logtext string) {
+// ctx parameter reserved for future context-aware logging enhancements
+func logDebug(_ context.Context, c *Client, logtext string) {
 	//If Log enabled in options
-	if c.option.Log == true {
-		log.Print(logtext)
+	if c.option.Log {
+		log.Printf("[go-also-cloud-wrapper] %s", logtext)
 	}
 }
