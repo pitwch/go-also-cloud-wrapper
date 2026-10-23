@@ -1,47 +1,39 @@
 package alsocloud
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 )
 
-// ReadResponseBody is a helper function to read and close response body
-// It returns the response as a string and handles cleanup
+// ReadResponseBody reads and closes a response body, returning it as a string.
 func ReadResponseBody(body io.ReadCloser) (string, error) {
 	if body == nil {
 		return "", fmt.Errorf("response body is nil")
 	}
-	defer func() {
-		_ = body.Close() //nolint:errcheck // Best effort close in defer
-	}()
+	defer closeBody(body)
 
-	buf := new(bytes.Buffer)
-	if _, err := buf.ReadFrom(body); err != nil {
+	data, err := io.ReadAll(body)
+	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
-	return buf.String(), nil
+	return string(data), nil
 }
 
-// ReadResponseJSON is a helper function to read response body and unmarshal JSON
-// It automatically closes the response body
+// ReadResponseJSON reads a response body, unmarshals JSON into target, and closes the body.
 func ReadResponseJSON(body io.ReadCloser, target interface{}) error {
 	if body == nil {
 		return fmt.Errorf("response body is nil")
 	}
-	defer func() {
-		_ = body.Close() //nolint:errcheck // Best effort close in defer
-	}()
+	defer closeBody(body)
 
-	decoder := json.NewDecoder(body)
-	if err := decoder.Decode(target); err != nil {
+	if err := json.NewDecoder(body).Decode(target); err != nil {
 		return fmt.Errorf("failed to decode JSON response: %w", err)
 	}
 	return nil
 }
 
-// IsValidSessionToken checks if a session token is valid (not nil and not empty)
+// IsValidSessionToken reports whether a session token pointer is non-nil and non-empty.
 func IsValidSessionToken(token *string) bool {
 	return token != nil && *token != ""
 }

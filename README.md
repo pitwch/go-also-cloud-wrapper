@@ -31,7 +31,7 @@ $ go get github.com/pitwch/go-also-cloud-wrapper/alsocloud
 | Marketplace   | https://marketplace.also.ch | `string`        | URL Marketplace (Country specific)    |
 | apiUser       | demo@example.com            | `string`        | Username for Cloud Marketplace        |
 | apiPassword   | 1234                        | `string`        | Password for Cloud Marketplace        |
-| options       | &also.Options{Timeout: 30}  | `*also.Options` | Options (see Chapter `Options`)       |
+| options       | &also.Options{Timeout: 30 * time.Second}  | `*also.Options` | Options (see Chapter `Options`)       |
 
 
 Example:
@@ -45,7 +45,7 @@ var alsocloud, err = also.NewClient(
 	"https://marketplace.also.ch",
 	"demo@example.com",
 	"1234",
-	&also.Options{Log: true, Timeout: 30},
+	&also.Options{Log: true, Timeout: 30 * time.Second},
 )
 ```
 
@@ -58,11 +58,12 @@ Options are **optional**:
 |---------------|--------------------------------------|--------------------------------------------------------------|
 | APIPrefix     | /SimpleAPI/SimpleAPIService.svc/rest | API - Prefix; Default = /SimpleAPI/SimpleAPIService.svc/rest |
 | LoginEndpoint | GetSessionToken                      | Endpoint for Login; Default = GetSessionToken                |
-| UserAgent     | go-also-cloud-wrapper                | User Agent; Default = go-also-cloud-wrapper                  |
-| Timeout       | 15                                   | Timeout in seconds                                           |
-| VerifySSL     | true                                 | Check if SSL is valid                                        |
+| UserAgent     | go-also-cloud-wrapper                | User Agent; Default = go-also-cloud-wrapper \<version\>      |
+| Timeout       | 30 * time.Second                     | HTTP timeout (`Timeout: 30` still works as legacy seconds)   |
+| VerifySSL     | true                                 | Kept for compatibility; TLS is always verified by default. Custom TLS via `HTTPClient`. |
 | Log           | true                                 | Activates Log Output; Default = false                        |
-| Client        | urlfetch.Client(ctx) <sup>[1](#urlfetch)</sup>                | HTTP-Client; Default = http.DefaultClient                    |
+| HTTPClient    | urlfetch.Client(ctx) <sup>[1](#urlfetch)</sup> | Custom HTTP client; Default = package transport              |
+| Batchsize     | 200                                  | Reserved for future batch helpers; Default = 200             |
 
 <a name="urlfetch">1</a>: urlfetch is used for Google App Engine Standard Instances but can be replaced by any HTTP-Client
 
@@ -103,7 +104,7 @@ var alsocloud, err = also.NewClient(
 	alsocloud.Switzerland,			//Using predefined Constant Switzerland.  
 	"demo@example.com",			//Plain URL would be possible "https://marketplace.also.ch"
 	"1234",
-	&also.Options{Log: true, Timeout: 30},
+	&also.Options{Log: true, Timeout: 30 * time.Second},
 )
 
 //Create context
