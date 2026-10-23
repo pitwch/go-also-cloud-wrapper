@@ -54,7 +54,7 @@ func setupTestClient(t *testing.T) *Client {
 }
 
 // newTestServerClient wires a Client to an httptest.Server for unit tests.
-func newTestServerClient(t *testing.T, handler http.HandlerFunc) (*Client, *httptest.Server) {
+func newTestServerClient(t *testing.T, handler http.HandlerFunc) *Client {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
@@ -67,7 +67,7 @@ func newTestServerClient(t *testing.T, handler http.HandlerFunc) (*Client, *http
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
-	return client, server
+	return client
 }
 
 func TestNewClient(t *testing.T) {
@@ -169,7 +169,7 @@ func TestClient_LoginAndPost(t *testing.T) {
 	var gotMethod string
 	var gotBody string
 
-	client, _ := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
+	client := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasSuffix(r.URL.Path, "GetSessionToken"):
 			w.Header().Set("Content-Type", "application/json")
@@ -213,7 +213,7 @@ func TestClient_LoginAndPost(t *testing.T) {
 
 func TestClient_GetDoesNotSendBody(t *testing.T) {
 	var gotBody []byte
-	client, _ := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
+	client := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasSuffix(r.URL.Path, "GetSessionToken"):
 			_, _ = w.Write([]byte(`"tok"`))
@@ -246,7 +246,7 @@ func TestClient_APIErrorStatus(t *testing.T) {
   </Detail>
 </Fault>`
 
-	client, _ := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
+	client := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasSuffix(r.URL.Path, "GetSessionToken"):
 			_, _ = w.Write([]byte(`"tok"`))
@@ -272,7 +272,7 @@ func TestClient_APIErrorStatus(t *testing.T) {
 }
 
 func TestClient_ContextCancellation(t *testing.T) {
-	client, _ := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
+	client := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
 		<-r.Context().Done()
 	})
 
@@ -421,10 +421,7 @@ func TestClient_Timeout(t *testing.T) {
 	t.Run("create_client_with_timeout", func(t *testing.T) {
 		client, err := NewClient(Debug, "test@example.com", "password", &Options{Timeout: time.Second})
 		if err != nil {
-			t.Errorf("Expected no error, got: %v", err)
-		}
-		if client == nil {
-			t.Error("Expected client to be non-nil")
+			t.Fatalf("Expected no error, got: %v", err)
 		}
 		if client.client.Timeout != time.Second {
 			t.Errorf("Timeout = %v, want 1s", client.client.Timeout)
@@ -512,7 +509,7 @@ func TestRequest_UnrecognizedMethod(t *testing.T) {
 
 func TestPost_NilDataSendsEmptyObject(t *testing.T) {
 	var raw json.RawMessage
-	client, _ := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
+	client := newTestServerClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasSuffix(r.URL.Path, "GetSessionToken"):
 			_, _ = w.Write([]byte(`"tok"`))
