@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1](https://github.com/pitwch/go-also-cloud-wrapper/compare/v1.1.0...v1.1.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* resolve golangci-lint SA5011 and unparam findings ([73a1fbe](https://github.com/pitwch/go-also-cloud-wrapper/commit/73a1fbeb14d7013610a1557ac5a799a949d5fa04))
+
 # [1.1.0](https://github.com/pitwch/go-also-cloud-wrapper/compare/v1.0.1...v1.1.0) (2026-10-23)
 
 
